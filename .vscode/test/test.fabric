@@ -1,0 +1,19 @@
+[      
+
+    {
+        "invoke": "begin",
+        "args": ["abcd"]
+    },
+    {
+        "invoke": "getTxs",
+        "args": ["abcd"]
+    },
+    {
+        "invoke": "test",
+        "args": []
+    },
+    {
+        "invoke": "test2",
+        "args": []
+    }
+]
