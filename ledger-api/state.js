@@ -17,7 +17,6 @@ class State {
         this.key = State.makeKey(keyParts);
     }
 
-
     getKey() {
         return this.key;
     }
@@ -41,36 +40,15 @@ class State {
     }
 
     /**
-     * Deserialize object into one of a set of supported JSON classes
-     * i.e. Covert serialized data to JSON object
+     * Covert serialized data to JSON object
      * Typically used after getState() ledger API
      * @param {data} data to deserialize into JSON object
      * @return {json} json with the data to store
      */
     static deserialize(data) {
         return JSON.parse(data.toString());
-        // let objClass = supportedClasses[json.class];
-        // let jsonC = JSON.stringify(supportedClasses);
-        // throw Error("deserialization" + jsonC);
-        // if (!objClass) {
-        //     throw new Error(`Unknown class of ${json.class}`);
-        // }
-        // let object = new (objClass)(json);
-
-        // return object;
     }
 
-    /**
-     * Deserialize object into specific object class
-     * Typically used after getState() ledger API
-     * @param {data} data to deserialize into JSON object
-     * @return {json} json with the data to store
-     */
-    static deserializeClass(data) {
-        return JSON.parse(data.toString());
-        // let object = new (objClass)(json);
-        // return object;
-    }
 
     /**
      * Join the keyParts to make a unififed string

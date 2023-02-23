@@ -59,9 +59,7 @@ class StateList {
      * addState() but kept separate becuase it is semantically distinct.
      */
     async updateState(state) {
-        let key = this.ctx.stub.createCompositeKey(this.name, state.getSplitKey());
-        let data = State.serialize(state);
-        await this.ctx.stub.putState(key, data);
+        await this.addState(state);
     }
 
 }
