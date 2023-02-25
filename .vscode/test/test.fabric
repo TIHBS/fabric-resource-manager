@@ -2,18 +2,14 @@
 
     {
         "invoke": "begin",
-        "args": ["abcd"]
+        "args": ["hello meme"]
     },
     {
         "invoke": "getTxs",
         "args": ["abcd"]
     },
     {
-        "invoke": "test",
-        "args": []
-    },
-    {
-        "invoke": "test2",
+        "invoke": "getAllTxs",
         "args": []
     }
 ]

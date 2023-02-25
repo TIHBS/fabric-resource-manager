@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 class State {
 
     /**
-     * @param {keyParts[]} elements to pull together to make a key for the objects
+     * @param {Array<string>} keyParts to pull together to make a key for the objects
      */
     constructor(keyParts) {
         this.key = State.makeKey(keyParts);
@@ -32,8 +32,8 @@ class State {
     /**
      * Convert object to buffer containing JSON data serialization
      * Typically used before putState()ledger API
-     * @param {Object} JSON object to serialize
-     * @return {buffer} buffer with the data to store
+     * @param {State} JSON object to serialize
+     * @return {Buffer} buffer with the data to store
      */
     static serialize(object) {
         return Buffer.from(JSON.stringify(object));
@@ -42,17 +42,19 @@ class State {
     /**
      * Covert serialized data to JSON object
      * Typically used after getState() ledger API
-     * @param {data} data to deserialize into JSON object
+     * @param {Buffer} buffer to deserialize into JSON object
      * @return {json} json with the data to store
      */
-    static deserialize(data) {
-        return JSON.parse(data.toString());
+    static fromBuffer(buffer) {
+        let json = JSON.parse(buffer.toString('utf8'));
+
+        return json;
     }
 
 
     /**
      * Join the keyParts to make a unififed string
-     * @param (String[]) keyParts
+     * @param {Array<string>} keyParts
      */
     static makeKey(keyParts) {
         return keyParts.join(':');

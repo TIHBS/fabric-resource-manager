@@ -3,6 +3,7 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 'use strict';
+const { Context } = require('fabric-contract-api');
 const State = require('./state.js');
 
 /**
@@ -15,6 +16,8 @@ class StateList {
 
     /**
      * Store Fabric context for subsequent API access, and name of list
+     * @param {Context} ctx
+     * @param {string} listName
      */
     constructor(ctx, listName) {
         this.ctx = ctx;
@@ -43,10 +46,14 @@ class StateList {
     async getState(key) {
 
         let ledgerKey = this.ctx.stub.createCompositeKey(this.name, State.splitKey(key));
+        return await this._getState(ledgerKey);
+    }
+
+    async _getState(ledgerKey) {
         let data = await this.ctx.stub.getState(ledgerKey);
 
-        if (data && Object.keys(data).length > 0 ) {
-            return State.deserialize(data);
+        if (data && Object.keys(data).length > 0) {
+            return data;
         } else {
             return null;
         }
@@ -60,6 +67,35 @@ class StateList {
      */
     async updateState(state) {
         await this.addState(state);
+    }
+
+    async deleteState(key) {
+        let ledgerKey = this.ctx.stub.createCompositeKey(this.name, State.splitKey(key));
+        await this.ctx.stub.deleteState(ledgerKey);
+    }
+
+    async getAll() {
+        let iterator = await this.ctx.stub.getStateByPartialCompositeKey(this.name, []);
+        return await this._getAllResults(iterator);
+    }
+
+
+    async _getAllResults(iterator) {
+        const allResults = [];
+        while (true) {
+            const res = await iterator.next();
+            if (res.value) {
+                // if not a getHistoryForKey iterator then key is contained in res.value.key
+                allResults.push(State.fromBuffer(res.value.value));
+            }
+    
+            // check to see if we have reached then end
+            if (res.done) {
+                // explicitly close the iterator
+                await iterator.close();
+                return allResults;
+            }
+        }
     }
 
 }
