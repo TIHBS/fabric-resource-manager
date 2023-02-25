@@ -74,6 +74,10 @@ class StateList {
         await this.ctx.stub.deleteState(ledgerKey);
     }
 
+    /**
+     * 
+     * @returns {Promise<Array<State>>}
+     */
     async getAll() {
         let iterator = await this.ctx.stub.getStateByPartialCompositeKey(this.name, []);
         return await this._getAllResults(iterator);

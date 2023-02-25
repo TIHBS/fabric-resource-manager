@@ -4,7 +4,7 @@
 
 'use strict';
 
-const RM = require('./lib/resource-manager');
+const test = require('./lib/smart-contracts/resource-manager-test');
 
-module.exports.RM = RM;
-module.exports.contracts = [ RM ];
+module.exports.test = test;
+module.exports.contracts = [ test ];

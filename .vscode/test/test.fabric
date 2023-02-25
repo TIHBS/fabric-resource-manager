@@ -2,14 +2,76 @@
 
     {
         "invoke": "begin",
-        "args": ["hello meme"]
+        "args": ["tx1"]
     },
     {
-        "invoke": "getTxs",
-        "args": ["abcd"]
+        "invoke": "setValues",
+        "args": ["tx1", true]
     },
     {
-        "invoke": "getAllTxs",
-        "args": []
+        "invoke": "readValues",
+        "args": ["tx1", 2, true]
+    },
+
+    {
+        "invoke": "commit",
+        "args": ["tx1"]
+    },
+    {
+        "invoke": "postCommit",
+        "args": ["tx1"]
+    },
+
+    {
+        "invoke": "begin",
+        "args": ["tx2"]
+    },
+    {
+        "invoke": "readValues",
+        "args": ["tx2", 0, true]
+    },
+    {
+        "invoke": "begin",
+        "args": ["tx3"]
+    },
+    {
+        "invoke": "readValues",
+        "args": ["tx3", 0, true]
+    },
+    {
+        "invoke": "setValues",
+        "args": ["tx3", false]
+    },
+    {
+        "invoke": "abort",
+        "args": ["tx2"]
+    },
+    {
+        "invoke": "setValues",
+        "args": ["tx3", true]
+    },
+    {
+        "invoke": "begin",
+        "args": ["tx4"]
+    },
+    {
+        "invoke": "readValues",
+        "args": ["tx4", 0, false]
+    },
+    {
+        "invoke": "commit",
+        "args": ["tx3"]
+    },
+    {
+        "invoke": "readValues",
+        "args": ["tx4", 0, true]
+    },
+    {
+        "invoke": "commit",
+        "args": ["tx4"]
+    },
+    {
+        "invoke": "postCommit",
+        "args": ["tx4"]
     }
 ]
