@@ -1,0 +1,71 @@
+[      
+
+    {
+        "invoke": "begin",
+        "args": ["txf1"]
+    },
+    {
+        "invoke": "querySeatPrice",
+        "args": ["txf1"]
+    },
+    {
+        "invoke": "changeSeatPrice",
+        "args": ["txf1", 320]
+    },
+    {
+        "invoke": "commit",
+        "args": ["txf1"]
+    },
+    {
+        "invoke": "begin",
+        "args": ["txf2"]
+    },
+    {
+        "invoke": "isSeatAvailable",
+        "args": ["txf2"]
+    },
+    {
+        "invoke": "querySeatPrice",
+        "args": ["txf2"]
+    },
+    {
+        "invoke": "queryClientBalance",
+        "args": ["txf2"]
+    },
+    {
+        "invoke": "abort",
+        "args": ["txf2"]
+    },
+    {
+        "invoke": "begin",
+        "args": ["txf300"]
+    },
+    {
+        "invoke": "addToClientBalance",
+        "args": ["txf300", 5000]
+    },
+    {
+        "invoke": "commit",
+        "args": ["txf300"]
+    },
+    {
+        "invoke": "begin",
+        "args": ["txf4"]
+    },
+    {
+        "invoke": "isSeatAvailable",
+        "args": ["txf4"]
+    },
+    {
+        "invoke": "querySeatPrice",
+        "args": ["txf4"]
+    },
+    {
+        "invoke": "bookSeat",
+        "args": ["txf4"]
+    },
+    {
+        "invoke": "commit",
+        "args": ["txf4"]
+    }
+]
