@@ -32,7 +32,7 @@ class State {
     /**
      * Convert object to buffer containing JSON data serialization
      * Typically used before putState()ledger API
-     * @param {State} JSON object to serialize
+     * @param {JSON} object JSON object to serialize
      * @return {Buffer} buffer with the data to store
      */
     static serialize(object) {
@@ -43,17 +43,15 @@ class State {
      * Covert serialized data to JSON object
      * Typically used after getState() ledger API
      * @param {Buffer} buffer to deserialize into JSON object
-     * @return {json} json with the data to store
+     * @return {JSON} json with the data to store
      */
-    static fromBuffer(buffer) {
-        let json = JSON.parse(buffer.toString('utf8'));
-
-        return json;
+    static jsonFromBuffer(buffer) {
+        return JSON.parse(buffer.toString('utf8'));
     }
 
 
     /**
-     * Join the keyParts to make a unififed string
+     * Join the keyParts to make a unified string
      * @param {Array<string>} keyParts
      */
     static makeKey(keyParts) {

@@ -90,7 +90,7 @@ class StateList {
             const res = await iterator.next();
             if (res.value) {
                 // if not a getHistoryForKey iterator then key is contained in res.value.key
-                allResults.push(State.fromBuffer(res.value.value));
+                allResults.push(State.jsonFromBuffer(res.value.value));
             }
     
             // check to see if we have reached then end
