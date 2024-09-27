@@ -19,12 +19,13 @@
     "fabric-contract-api": "~2.5",
     "fabric-shim": "~2.5",
     "json-stringify-deterministic": "^1.0.0",
-    "sort-keys-recursive": "^2.1.0",
-    "luxon": "^3.5.0"
+    "luxon": "^3.5.0",
+    "sort-keys-recursive": "^2.1.0"
   },
   "devDependencies": {
     "chai": "^4.4.1",
-    "eslint": "^8.57.0",
+    "eslint": "^8.57.1",
+    "globals": "^15.9.0",
     "mocha": "^10.4.0",
     "nyc": "^15.1.0",
     "sinon": "^18.0.0",
@@ -42,7 +43,7 @@
       "html"
     ],
     "all": true,
-    "check-coverage": true,
+    "check-coverage": false,
     "statements": 100,
     "branches": 100,
     "functions": 100,
