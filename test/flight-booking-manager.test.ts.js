@@ -3,23 +3,19 @@
 */
 
 'use strict';
+
 const sinon = require('sinon');
 const chai = require('chai');
 const sinonChai = require('sinon-chai');
-const expect = chai.expect,
-    assert = chai.assert;
-
+const expect = chai.expect;
 const {ChaincodeStub, ClientIdentity} = require('fabric-shim');
-
 const ResourceManagerContext = require('../lib/resource-manager/resource-manager-context');
-
 const FlightBookingManager = require("../lib/smart-contracts/flight-booking-manager");
-const {setTimeout} = require('timers/promises');
 
 // let assert = sinon.assert;
 chai.use(sinonChai);
 
-describe('Resource Manager Basic Tests', () => {
+describe('Flights Manager Basic Tests', () => {
     let transactionContext, chaincodeStub, lastEvent, identity;
     beforeEach(() => {
         transactionContext = new ResourceManagerContext();
