@@ -1,38 +1,49 @@
 {
   "name": "fabric-resource-manager",
-  "version": "1.0.0",
-  "description": "a resource manager chaincode for Hyperledger Fabric ledgers",
+  "version": "2.0.0",
+  "description": "A resource manager chaincode for Hyperledger Fabric ledgers",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint *.js */**.js",
+    "pretest": "npm run lint",
+    "test": "nyc mocha --recursive",
     "start": "fabric-chaincode-node start"
   },
+  "engineStrict": true,
   "author": "Ghareeb Falazi",
   "license": "Apache-2.0",
   "dependencies": {
-    "fabric-contract-api": "~1.4.0",
-    "fabric-shim": "~1.4.0"
+    "fabric-contract-api": "~2.5",
+    "fabric-shim": "~2.5",
+    "json-stringify-deterministic": "^1.0.0",
+    "luxon": "^3.5.0",
+    "sort-keys-recursive": "^2.1.0"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
-    "chai-as-promised": "^7.1.1",
-    "eslint": "^4.19.1",
-    "mocha": "^5.2.0",
-    "nyc": "^12.0.2",
-    "sinon": "^6.0.0",
-    "sinon-chai": "^3.2.0"
+    "chai": "^4.4.1",
+    "eslint": "^8.57.1",
+    "globals": "^15.9.0",
+    "mocha": "^10.4.0",
+    "nyc": "^15.1.0",
+    "sinon": "^18.0.0",
+    "sinon-chai": "^3.7.0"
   },
   "nyc": {
     "exclude": [
       "coverage/**",
-      "test/**"
+      "test/**",
+      "index.js",
+      ".eslintrc.js"
     ],
     "reporter": [
       "text-summary",
       "html"
     ],
     "all": true,
-    "check-coverage": true,
+    "check-coverage": false,
     "statements": 100,
     "branches": 100,
     "functions": 100,

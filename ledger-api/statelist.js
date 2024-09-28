@@ -86,20 +86,21 @@ class StateList {
 
     async _getAllResults(iterator) {
         const allResults = [];
-        while (true) {
-            const res = await iterator.next();
+        let res = await iterator.next();
+        while (!res.done) {
             if (res.value) {
                 // if not a getHistoryForKey iterator then key is contained in res.value.key
-                allResults.push(State.fromBuffer(res.value.value));
+                allResults.push(State.jsonFromBuffer(res.value.value));
             }
-    
-            // check to see if we have reached then end
-            if (res.done) {
-                // explicitly close the iterator
-                await iterator.close();
-                return allResults;
-            }
+
+            res = await iterator.next();
         }
+
+        if (iterator.close) {
+            iterator.close();
+        }
+
+        return allResults;
     }
 
 }
