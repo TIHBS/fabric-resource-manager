@@ -6,17 +6,19 @@
 const sinon = require('sinon');
 const chai = require('chai');
 const sinonChai = require('sinon-chai');
-const expect = chai.expect;
+const expect = chai.expect,
+    assert = chai.assert;
 
 const {ChaincodeStub, ClientIdentity} = require('fabric-shim');
-const {DateTime} = require('luxon');
+const {DateTime, Duration} = require('luxon');
 const ResourceManagerContext = require('../lib/resource-manager/resource-manager-context');
 const TxDetails = require('../lib/resource-manager/tx-details');
 const Variable = require('../lib/resource-manager/variable');
 const TxState = require("../lib/resource-manager/tx-state");
 const ResourceManager = require("../lib/resource-manager/resource-manager");
+const {setTimeout} = require('timers/promises');
 
-let assert = sinon.assert;
+// let assert = sinon.assert;
 chai.use(sinonChai);
 
 describe('Resource Manager Basic Tests', () => {
@@ -28,7 +30,12 @@ describe('Resource Manager Basic Tests', () => {
         transactionContext.setChaincodeStub(chaincodeStub);
         transactionContext.setClientIdentity(identity);
 
-        identity.getID.callsFake(() => "user1");
+        identity.getID.callsFake(() => {
+            if (identity.special) {
+                return identity.special;
+            }
+            return "user1"
+        });
 
         chaincodeStub.putState.callsFake((key, value) => {
             if (!chaincodeStub.states) {
@@ -80,8 +87,8 @@ describe('Resource Manager Basic Tests', () => {
             return Promise.resolve(internalGetStateByCompositeKey());
         });
 
-        chaincodeStub.getDateTimestamp.callsFake(async () => {
-            return Promise.resolve(new Date());
+        chaincodeStub.getDateTimestamp.callsFake(() => {
+            return new Date();
         });
 
         chaincodeStub.setEvent.callsFake(
@@ -102,7 +109,7 @@ describe('Resource Manager Basic Tests', () => {
                 let tx = TxDetails.createInstance("a1", "me", now);
                 await transactionContext.TxDetailsList.addTxDetails(tx);
                 let tx2 = await transactionContext.TxDetailsList.getTxDetails("a1");
-                expect(tx2.getState()).to.be.equal(TxState.STARTED);
+                expect(tx2.getState()).to.be.equal(TxState.UNDEFINED);
                 expect(tx2.getId()).to.be.equal("a1");
                 expect(tx2.getOwner()).to.be.equal("me");
                 expect(tx2.getTimeout().toISO() === now.toISO()).to.be.true;
@@ -135,13 +142,13 @@ describe('Resource Manager Basic Tests', () => {
             });
 
             it('Emitting events works properly', async () => {
-               transactionContext.stub.setEvent("help", Buffer.from(JSON.stringify({
-                   owner: "me",
-                   txId: "tx1",
-                   isYes: "false"
-               })));
-               expect(lastEvent.name).to.be.equal("help");
-               let eventObj = JSON.parse(lastEvent.payload.toString('utf8'));
+                transactionContext.stub.setEvent("help", Buffer.from(JSON.stringify({
+                    owner: "me",
+                    txId: "tx1",
+                    isYes: "false"
+                })));
+                expect(lastEvent.name).to.be.equal("help");
+                let eventObj = JSON.parse(lastEvent.payload.toString('utf8'));
                 expect(eventObj.owner).to.be.equal("me");
                 expect(eventObj.txId).to.be.equal("tx1");
                 expect(eventObj.isYes).to.be.equal("false");
@@ -179,13 +186,20 @@ describe('Resource Manager Basic Tests', () => {
             await rm.commit(transactionContext, "tx1Aa");
             tx = await transactionContext.TxDetailsList.getTxDetails("tx1Aa");
             expect(tx.getState()).to.be.equal(TxState.COMMITTED);
-
+            let x1 = await transactionContext.variableList.getVariable("x1");
+            expect(x1.getValue()).to.be.equal("lION");
+            expect(x1.getReadLocks().length).to.be.equal(0);
+            expect(x1.getWriteLockHolder()).to.be.equal(null);
+            let x2 = await transactionContext.variableList.getVariable("x2");
+            expect(x2.getValue()).to.be.equal("reem");
+            expect(x2.getReadLocks().length).to.be.equal(0);
+            expect(x2.getWriteLockHolder()).to.be.equal(null);
         });
-        it ('Test read, prepare, and commit', async () => {
+        it('Test read, prepare, and commit', async () => {
             let rm = new ResourceManager();
             let res = await rm.getValue(transactionContext, "tx1Aa", "x1");
             expect(res.isSuccessful).to.be.true;
-            expect(res.value).to.be.equal(undefined);
+            expect(res.value).to.be.equal(null);
             let tx = await transactionContext.TxDetailsList.getTxDetails("tx1Aa");
             expect(tx.getState()).to.be.equal(TxState.STARTED);
             await rm.prepare(transactionContext, "tx1Aa");
@@ -199,6 +213,368 @@ describe('Resource Manager Basic Tests', () => {
             await rm.commit(transactionContext, "tx1Aa");
             tx = await transactionContext.TxDetailsList.getTxDetails("tx1Aa");
             expect(tx.getState()).to.be.equal(TxState.COMMITTED);
+        });
+    });
+    describe('Test user ABORT', () => {
+        it('Test user abort after set', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            let variable = await transactionContext.variableList.getVariable("x1");
+            expect(variable.getBeforeImage()).to.be.equal(null);
+            expect(variable.getValue()).to.be.equal("ghareeb");
+            await res.abort(transactionContext, "tx1");
+            let tx = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx.getState()).to.be.equal(TxState.ABORTED);
+            variable = await transactionContext.variableList.getVariable("x1");
+            expect(variable.getValue()).to.be.equal(null);
+            expect(variable.getReadLocks().length).to.be.equal(0);
+            expect(variable.getWriteLockHolder()).to.be.null;
+            let success = await res.setValue(transactionContext, "tx2", "x1", "reem");
+            expect(success).to.be.true;
+        });
+        it('Test user abort after PREPARED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            let variable = await transactionContext.variableList.getVariable("x1");
+            expect(variable.getBeforeImage()).to.be.equal(null);
+            expect(variable.getValue()).to.be.equal("ghareeb");
+            await res.prepare(transactionContext, "tx1");
+            let tx = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx.getState()).to.be.equal(TxState.PREPARED);
+            await res.abort(transactionContext, "tx1");
+            tx = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx.getState()).to.be.equal(TxState.ABORTED);
+            variable = await transactionContext.variableList.getVariable("x1");
+            expect(variable.getValue()).to.be.equal(null);
+            let success = await res.setValue(transactionContext, "tx2", "x1", "reem");
+            expect(success).to.be.true;
+        });
+        it('Test user abort after ABORTED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            let variable = await transactionContext.variableList.getVariable("x1");
+            expect(variable.getBeforeImage()).to.be.equal(null);
+            expect(variable.getValue()).to.be.equal("ghareeb");
+            await res.abort(transactionContext, "tx1");
+            let tx = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx.getState()).to.be.equal(TxState.ABORTED);
+            variable = await transactionContext.variableList.getVariable("x1");
+            expect(variable.getValue()).to.be.equal(null);
+            await res.abort(transactionContext, "tx1");
+            tx = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx.getState()).to.be.equal(TxState.ABORTED);
+            variable = await transactionContext.variableList.getVariable("x1");
+            expect(variable.getValue()).to.be.equal(null);
+            let success = await res.setValue(transactionContext, "tx2", "x1", "reem");
+            expect(success).to.be.true;
+        });
+        it('Test failed user ABORT because not STARTED', async () => {
+            let res = new ResourceManager();
+            let err = undefined;
+
+            try {
+                await res.abort(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+
+        });
+        it('Test failed user ABORT because COMMITTED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await res.prepare(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx1");
+            let err = undefined;
+
+            try {
+                await res.abort(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+    });
+    describe('Test PREPARE', () => {
+        it('Test failed PREPARE because not STARTED', async () => {
+            let res = new ResourceManager();
+            let err = undefined;
+
+            try {
+                await res.prepare(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+        it('Test failed PREPARE after COMMITTED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await res.prepare(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx1");
+            let err = undefined;
+
+            try {
+                await res.prepare(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+        it('Test failed PREPARE after PREPARED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await res.prepare(transactionContext, "tx1");
+            let err = undefined;
+
+            try {
+                await res.prepare(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+        it('Test PREPARE after ABORTED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await res.abort(transactionContext, "tx1");
+            await res.prepare(transactionContext, "tx1");
+            expect(lastEvent.name).to.be.equal("Voted");
+            let eventObj = JSON.parse(lastEvent.payload.toString('utf8'));
+            expect(eventObj.owner).to.be.equal("user1");
+            expect(eventObj.txId).to.be.equal("tx1");
+            expect(eventObj.isYes).to.be.equal("false");
+        });
+    });
+    describe('Test COMMIT', () => {
+        it('Test failed COMMIT because not started', async () => {
+            let res = new ResourceManager();
+            let err = undefined;
+
+            try {
+                await res.commit(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+
+        it('Test failed COMMIT because ABORTED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await res.abort(transactionContext, "tx1");
+            let err = undefined;
+
+            try {
+                await res.commit(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+
+        it('Test failed COMMIT because COMMITTED', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await res.prepare(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx1");
+            let err = undefined;
+
+            try {
+                await res.commit(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+    });
+    describe('Test multiple transactions', () => {
+        it('Two non-interacting transactions', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            let success = await res.setValue(transactionContext, "tx2", "x2", "reem");
+            expect(success).to.be.true;
+            let result = await res.getValue(transactionContext, "tx1", "x1");
+            expect(result.isSuccessful).to.be.true;
+            expect(result.value).to.be.equal("ghareeb");
+            result = await res.getValue(transactionContext, "tx2", "x2");
+            expect(result.isSuccessful).to.be.true;
+            expect(result.value).to.be.equal("reem");
+            await res.prepare(transactionContext, "tx1");
+            await res.prepare(transactionContext, "tx2");
+            await res.commit(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx2");
+            let tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.COMMITTED);
+            let tx2 = await transactionContext.TxDetailsList.getTxDetails("tx2");
+            expect(tx2.getState()).to.be.equal(TxState.COMMITTED);
+        });
+
+        it('Two interacting, non-conflicting transactions', async () => {
+            let res = new ResourceManager();
+            let result = await res.getValue(transactionContext, "tx1", "x1");
+            expect(result.isSuccessful).to.be.true;
+            expect(result.value).to.be.equal(null);
+            result = await res.getValue(transactionContext, "tx2", "x1");
+            expect(result.isSuccessful).to.be.true;
+            expect(result.value).to.be.equal(null);
+            await res.prepare(transactionContext, "tx1");
+            await res.prepare(transactionContext, "tx2");
+            await res.commit(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx2");
+            let tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.COMMITTED);
+            let tx2 = await transactionContext.TxDetailsList.getTxDetails("tx2");
+            expect(tx2.getState()).to.be.equal(TxState.COMMITTED);
+        });
+
+        it('Two conflicting transactions (write-read)', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            let result = await res.getValue(transactionContext, "tx2", "x1");
+            expect(result.isSuccessful).to.be.false;
+            expect(result.value).to.be.equal(null);
+            let tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.STARTED);
+            let tx2 = await transactionContext.TxDetailsList.getTxDetails("tx2");
+            expect(tx2.getState()).to.be.equal(TxState.ABORTED);
+            await res.prepare(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx1");
+            tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.COMMITTED);
+        });
+
+        it('Two conflicting transactions (read-write)', async () => {
+            let res = new ResourceManager();
+            await res.getValue(transactionContext, "tx1", "x1");
+            let isSuccessful = await res.setValue(transactionContext, "tx2", "x1", "reem");
+            expect(isSuccessful).to.be.false;
+            let tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.STARTED);
+            let tx2 = await transactionContext.TxDetailsList.getTxDetails("tx2");
+            expect(tx2.getState()).to.be.equal(TxState.ABORTED);
+            await res.prepare(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx1");
+            tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.COMMITTED);
+        });
+
+        it('Two conflicting transactions (write-write)', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            let isSuccessful = await res.setValue(transactionContext, "tx2", "x1", "reem");
+            expect(isSuccessful).to.be.false;
+            let tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.STARTED);
+            let tx2 = await transactionContext.TxDetailsList.getTxDetails("tx2");
+            expect(tx2.getState()).to.be.equal(TxState.ABORTED);
+            await res.prepare(transactionContext, "tx1");
+            await res.commit(transactionContext, "tx1");
+            tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.COMMITTED);
+        });
+
+        it('Two conflicting transactions (first pass deadline)', async () => {
+            let res = new ResourceManager();
+            res.maxLockDuration = Duration.fromObject({milliseconds: 5});
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await setTimeout(100);
+            let isSuccessful = await res.setValue(transactionContext, "tx2", "x1", "reem");
+            expect(isSuccessful).to.be.true;
+            let tx1 = await transactionContext.TxDetailsList.getTxDetails("tx1");
+            expect(tx1.getState()).to.be.equal(TxState.ABORTED);
+            let tx2 = await transactionContext.TxDetailsList.getTxDetails("tx2");
+            expect(tx2.getState()).to.be.equal(TxState.STARTED);
+            await res.prepare(transactionContext, "tx2");
+            await res.commit(transactionContext, "tx2");
+            tx1 = await transactionContext.TxDetailsList.getTxDetails("tx2");
+            expect(tx1.getState()).to.be.equal(TxState.COMMITTED);
+        });
+    });
+
+    describe('Change user identity', () => {
+        it('Different user in set', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            identity.special = "user2";
+            let err = undefined;
+
+            try {
+                await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+
+        it('Different user in get', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            identity.special = "user2";
+            let err = undefined;
+
+            try {
+                await res.getValue(transactionContext, "tx1", "x1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+
+        it('Different user in PREPARE', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            identity.special = "user2";
+            let err = undefined;
+
+            try {
+                await res.prepare(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+
+        it('Different user in ABORT', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            identity.special = "user2";
+            let err = undefined;
+
+            try {
+                await res.abort(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
+        });
+
+        it('Different user in COMMIT', async () => {
+            let res = new ResourceManager();
+            await res.setValue(transactionContext, "tx1", "x1", "ghareeb");
+            await res.prepare(transactionContext, "tx1");
+            identity.special = "user2";
+            let err = undefined;
+
+            try {
+                await res.commit(transactionContext, "tx1");
+            } catch(e) {
+                err = e;
+            }
+
+            expect(err).to.not.be.undefined;
         });
     });
 });
