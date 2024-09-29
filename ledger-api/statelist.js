@@ -3,8 +3,8 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 'use strict';
-const { Context } = require('fabric-contract-api');
-const State = require('./state.js');
+
+const State = require('./state');
 
 /**
  * StateList provides a named virtual container for a set of ledger states.
@@ -28,8 +28,8 @@ class StateList {
      * Add a state to the list. Creates a new state in worldstate with
      * appropriate composite key.  Note that state defines its own key.
      * State object is serialized before writing.
-     * @param {State} state 
-     * @returns 
+     * @param {State} state
+     * @returns
      */
     async addState(state) {
         let key = this.ctx.stub.createCompositeKey(this.name, state.getSplitKey());
@@ -75,7 +75,7 @@ class StateList {
     }
 
     /**
-     * 
+     *
      * @returns {Promise<Array<State>>}
      */
     async getAll() {

@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// eslint-disable-next-line strict
 module.exports = {
     env: {
         node: true,
@@ -12,7 +13,7 @@ module.exports = {
         ecmaVersion: 8,
         sourceType: 'script'
     },
-    extends: "eslint:recommended",
+    extends: 'eslint:recommended',
     rules: {
         indent: ['error', 4],
         'linebreak-style': ['error', 'unix'],
@@ -34,6 +35,6 @@ module.exports = {
         'operator-linebreak': 'error',
         yoda: 'error',
         'quote-props': ['error', 'as-needed'],
-        'no-constant-condition': ["error", { "checkLoops": false }]
+        'no-constant-condition': ['error', { checkLoops: false }]
     }
 };
