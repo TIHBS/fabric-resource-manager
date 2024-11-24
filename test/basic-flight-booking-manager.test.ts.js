@@ -146,7 +146,7 @@ describe('Basic Flights Manager Basic Tests', () => {
             let isSeat22Available = await man.isSeatAvailable(context, 'A', 22);
             expect(isSeat22Available).to.be.false;
             let balance = await man.queryClientBalance(context);
-            expect(balance).to.be.equal(2000 - 1000);
+            expect(balance).to.be.equal(2000 + 2000 - 1000);
             let hasRes = await man.hasReservation(context, 'A');
             expect(hasRes).to.be.true;
             let isSeatBookedByClient = await man.isSeatBookedByClient(context, 'A', 22);
