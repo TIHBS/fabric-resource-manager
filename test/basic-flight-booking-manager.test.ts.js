@@ -103,13 +103,13 @@ describe('Basic Flights Manager Basic Tests', () => {
         it('queries client balance', async () => {
             let man = new BasicFlightBookingManager();
             let value = await man.queryClientBalance(context);
-            expect(value).to.be.equal(0);
+            expect(value).to.be.equal(2000);
             await man.addToClientBalance(context, 1234);
             value = await man.queryClientBalance(context);
-            expect(value).to.be.equal(1234);
+            expect(value).to.be.equal(3234);
             await man.addToClientBalance(context, 16);
             value = await man.queryClientBalance(context);
-            expect(value).to.be.equal(1250);
+            expect(value).to.be.equal(3250);
         });
 
         it('change seats count', async () => {
