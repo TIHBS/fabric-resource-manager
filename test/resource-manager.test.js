@@ -105,12 +105,13 @@ describe('Resource Manager Basic Tests', () => {
     describe('Test Plumbing', () => {
         it('TxDetailsList functions properly', async () => {
             let now = DateTime.now();
-            let tx = TxDetails.createInstance('a1', 'me', now);
+            let tx = TxDetails.createInstance('a1', 'me', now, 'him');
             await transactionContext.TxDetailsList.addTxDetails(tx);
             let tx2 = await transactionContext.TxDetailsList.getTxDetails('a1');
             expect(tx2.getState()).to.be.equal(TxState.UNDEFINED);
             expect(tx2.getId()).to.be.equal('a1');
             expect(tx2.getOwner()).to.be.equal('me');
+            expect(tx2.getTm()).to.be.equal('him');
             expect(tx2.getTimeout().toISO() === now.toISO()).to.be.true;
             tx2.setState(TxState.ABORTED);
             await transactionContext.TxDetailsList.updateTxDetails(tx2);
@@ -118,6 +119,7 @@ describe('Resource Manager Basic Tests', () => {
             expect(tx2.getState()).to.be.equal(TxState.ABORTED);
             expect(tx2.getId()).to.be.equal('a1');
             expect(tx2.getOwner()).to.be.equal('me');
+            expect(tx2.getTm()).to.be.equal('him');
             expect(tx2.getTimeout().toISO() === now.toISO()).to.be.true;
         });
 
@@ -157,19 +159,19 @@ describe('Resource Manager Basic Tests', () => {
     describe('Test happy path', () => {
         it('Test set variables, read them, reset them, prepare, and commit', async () => {
             let rm = new ResourceManager();
-            let isSuccessful = await rm.setValue(transactionContext, 'tx1Aa', 'x1', 'ghareeb');
+            let isSuccessful = await rm.setValue(transactionContext, 'tx1Aa', 'x1', 'ghareeb', 'user1');
             expect(isSuccessful).to.be.true;
-            isSuccessful = await rm.setValue(transactionContext, 'tx1Aa', 'x2', 'reem');
+            isSuccessful = await rm.setValue(transactionContext, 'tx1Aa', 'x2', 'reem', 'user1');
             expect(isSuccessful).to.be.true;
-            let res = await rm.getValue(transactionContext, 'tx1Aa', 'x1');
+            let res = await rm.getValue(transactionContext, 'tx1Aa', 'x1', 'user1');
             expect(res.isSuccessful).to.be.true;
             expect(res.value).to.be.equal('ghareeb');
-            res = await rm.getValue(transactionContext, 'tx1Aa', 'x2');
+            res = await rm.getValue(transactionContext, 'tx1Aa', 'x2', 'user1');
             expect(res.isSuccessful).to.be.true;
             expect(res.value).to.be.equal('reem');
-            isSuccessful = await rm.setValue(transactionContext, 'tx1Aa', 'x1', 'lION');
+            isSuccessful = await rm.setValue(transactionContext, 'tx1Aa', 'x1', 'lION', 'user1');
             expect(isSuccessful).to.be.true;
-            res = await rm.getValue(transactionContext, 'tx1Aa', 'x1');
+            res = await rm.getValue(transactionContext, 'tx1Aa', 'x1', 'user1');
             expect(res.isSuccessful).to.be.true;
             expect(res.value).to.be.equal('lION');
             let tx = await transactionContext.TxDetailsList.getTxDetails('tx1Aa');
@@ -196,7 +198,7 @@ describe('Resource Manager Basic Tests', () => {
         });
         it('Test read, prepare, and commit', async () => {
             let rm = new ResourceManager();
-            let res = await rm.getValue(transactionContext, 'tx1Aa', 'x1');
+            let res = await rm.getValue(transactionContext, 'tx1Aa', 'x1', 'user1');
             expect(res.isSuccessful).to.be.true;
             expect(res.value).to.be.equal(null);
             let tx = await transactionContext.TxDetailsList.getTxDetails('tx1Aa');
@@ -217,7 +219,7 @@ describe('Resource Manager Basic Tests', () => {
     describe('Test user ABORT', () => {
         it('Test user abort after set', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             let variable = await transactionContext.variableList.getVariable('x1');
             expect(variable.getBeforeImage()).to.be.equal(null);
             expect(variable.getValue()).to.be.equal('ghareeb');
@@ -228,12 +230,12 @@ describe('Resource Manager Basic Tests', () => {
             expect(variable.getValue()).to.be.equal(null);
             expect(variable.getReadLocks().length).to.be.equal(0);
             expect(variable.getWriteLockHolder()).to.be.null;
-            let success = await res.setValue(transactionContext, 'tx2', 'x1', 'reem');
+            let success = await res.setValue(transactionContext, 'tx2', 'x1', 'reem', 'user1');
             expect(success).to.be.true;
         });
         it('Test user abort after PREPARED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             let variable = await transactionContext.variableList.getVariable('x1');
             expect(variable.getBeforeImage()).to.be.equal(null);
             expect(variable.getValue()).to.be.equal('ghareeb');
@@ -245,12 +247,12 @@ describe('Resource Manager Basic Tests', () => {
             expect(tx.getState()).to.be.equal(TxState.ABORTED);
             variable = await transactionContext.variableList.getVariable('x1');
             expect(variable.getValue()).to.be.equal(null);
-            let success = await res.setValue(transactionContext, 'tx2', 'x1', 'reem');
+            let success = await res.setValue(transactionContext, 'tx2', 'x1', 'reem', 'user1');
             expect(success).to.be.true;
         });
         it('Test user abort after ABORTED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             let variable = await transactionContext.variableList.getVariable('x1');
             expect(variable.getBeforeImage()).to.be.equal(null);
             expect(variable.getValue()).to.be.equal('ghareeb');
@@ -264,7 +266,7 @@ describe('Resource Manager Basic Tests', () => {
             expect(tx.getState()).to.be.equal(TxState.ABORTED);
             variable = await transactionContext.variableList.getVariable('x1');
             expect(variable.getValue()).to.be.equal(null);
-            let success = await res.setValue(transactionContext, 'tx2', 'x1', 'reem');
+            let success = await res.setValue(transactionContext, 'tx2', 'x1', 'reem', 'user1');
             expect(success).to.be.true;
         });
         it('Test failed user ABORT because not STARTED', async () => {
@@ -282,7 +284,7 @@ describe('Resource Manager Basic Tests', () => {
         });
         it('Test failed user ABORT because COMMITTED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await res.prepare(transactionContext, 'tx1');
             await res.commit(transactionContext, 'tx1');
             let err = undefined;
@@ -311,7 +313,7 @@ describe('Resource Manager Basic Tests', () => {
         });
         it('Test failed PREPARE after COMMITTED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await res.prepare(transactionContext, 'tx1');
             await res.commit(transactionContext, 'tx1');
             let err = undefined;
@@ -326,7 +328,7 @@ describe('Resource Manager Basic Tests', () => {
         });
         it('Test failed PREPARE after PREPARED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await res.prepare(transactionContext, 'tx1');
             let err = undefined;
 
@@ -340,7 +342,7 @@ describe('Resource Manager Basic Tests', () => {
         });
         it('Test PREPARE after ABORTED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await res.abort(transactionContext, 'tx1');
             await res.prepare(transactionContext, 'tx1');
             expect(lastEvent.name).to.be.equal('Voted');
@@ -366,7 +368,7 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Test failed COMMIT because ABORTED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await res.abort(transactionContext, 'tx1');
             let err = undefined;
 
@@ -381,7 +383,7 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Test failed COMMIT because COMMITTED', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await res.prepare(transactionContext, 'tx1');
             await res.commit(transactionContext, 'tx1');
             let err = undefined;
@@ -398,13 +400,13 @@ describe('Resource Manager Basic Tests', () => {
     describe('Test multiple transactions', () => {
         it('Two non-interacting transactions', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
-            let success = await res.setValue(transactionContext, 'tx2', 'x2', 'reem');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
+            let success = await res.setValue(transactionContext, 'tx2', 'x2', 'reem', 'user1');
             expect(success).to.be.true;
-            let result = await res.getValue(transactionContext, 'tx1', 'x1');
+            let result = await res.getValue(transactionContext, 'tx1', 'x1', 'user1');
             expect(result.isSuccessful).to.be.true;
             expect(result.value).to.be.equal('ghareeb');
-            result = await res.getValue(transactionContext, 'tx2', 'x2');
+            result = await res.getValue(transactionContext, 'tx2', 'x2', 'user1');
             expect(result.isSuccessful).to.be.true;
             expect(result.value).to.be.equal('reem');
             await res.prepare(transactionContext, 'tx1');
@@ -419,10 +421,10 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Two interacting, non-conflicting transactions', async () => {
             let res = new ResourceManager();
-            let result = await res.getValue(transactionContext, 'tx1', 'x1');
+            let result = await res.getValue(transactionContext, 'tx1', 'x1', 'user1');
             expect(result.isSuccessful).to.be.true;
             expect(result.value).to.be.equal(null);
-            result = await res.getValue(transactionContext, 'tx2', 'x1');
+            result = await res.getValue(transactionContext, 'tx2', 'x1', 'user1');
             expect(result.isSuccessful).to.be.true;
             expect(result.value).to.be.equal(null);
             await res.prepare(transactionContext, 'tx1');
@@ -437,8 +439,8 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Two conflicting transactions (write-read)', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
-            let result = await res.getValue(transactionContext, 'tx2', 'x1');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
+            let result = await res.getValue(transactionContext, 'tx2', 'x1', 'user1');
             expect(result.isSuccessful).to.be.false;
             expect(result.value).to.be.equal(null);
             let tx1 = await transactionContext.TxDetailsList.getTxDetails('tx1');
@@ -453,8 +455,8 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Two conflicting transactions (read-write)', async () => {
             let res = new ResourceManager();
-            await res.getValue(transactionContext, 'tx1', 'x1');
-            let isSuccessful = await res.setValue(transactionContext, 'tx2', 'x1', 'reem');
+            await res.getValue(transactionContext, 'tx1', 'x1', 'user1');
+            let isSuccessful = await res.setValue(transactionContext, 'tx2', 'x1', 'reem', 'user1');
             expect(isSuccessful).to.be.false;
             let tx1 = await transactionContext.TxDetailsList.getTxDetails('tx1');
             expect(tx1.getState()).to.be.equal(TxState.STARTED);
@@ -468,8 +470,8 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Two conflicting transactions (write-write)', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
-            let isSuccessful = await res.setValue(transactionContext, 'tx2', 'x1', 'reem');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
+            let isSuccessful = await res.setValue(transactionContext, 'tx2', 'x1', 'reem', 'user1');
             expect(isSuccessful).to.be.false;
             let tx1 = await transactionContext.TxDetailsList.getTxDetails('tx1');
             expect(tx1.getState()).to.be.equal(TxState.STARTED);
@@ -484,9 +486,9 @@ describe('Resource Manager Basic Tests', () => {
         it('Two conflicting transactions (first pass deadline)', async () => {
             let res = new ResourceManager();
             res.maxLockDuration = Duration.fromObject({milliseconds: 5});
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await setTimeout(100);
-            let isSuccessful = await res.setValue(transactionContext, 'tx2', 'x1', 'reem');
+            let isSuccessful = await res.setValue(transactionContext, 'tx2', 'x1', 'reem', 'user1');
             expect(isSuccessful).to.be.true;
             let tx1 = await transactionContext.TxDetailsList.getTxDetails('tx1');
             expect(tx1.getState()).to.be.equal(TxState.ABORTED);
@@ -502,12 +504,12 @@ describe('Resource Manager Basic Tests', () => {
     describe('Change user identity', () => {
         it('Different user in set', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             identity.special = 'user2';
             let err = undefined;
 
             try {
-                await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+                await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             } catch(e) {
                 err = e;
             }
@@ -517,12 +519,12 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Different user in get', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             identity.special = 'user2';
             let err = undefined;
 
             try {
-                await res.getValue(transactionContext, 'tx1', 'x1');
+                await res.getValue(transactionContext, 'tx1', 'x1', 'user1');
             } catch(e) {
                 err = e;
             }
@@ -532,7 +534,7 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Different user in PREPARE', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             identity.special = 'user2';
             let err = undefined;
 
@@ -547,7 +549,7 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Different user in ABORT', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             identity.special = 'user2';
             let err = undefined;
 
@@ -562,7 +564,7 @@ describe('Resource Manager Basic Tests', () => {
 
         it('Different user in COMMIT', async () => {
             let res = new ResourceManager();
-            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb');
+            await res.setValue(transactionContext, 'tx1', 'x1', 'ghareeb', 'user1');
             await res.prepare(transactionContext, 'tx1');
             identity.special = 'user2';
             let err = undefined;
