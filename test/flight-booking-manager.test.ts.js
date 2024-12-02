@@ -104,7 +104,7 @@ describe('Flights Manager Basic Tests', () => {
             let man = new FlightBookingManager();
             let value = await man.querySeatPrice(transactionContext, 'tx1', 'user1');
             expect(value).to.be.equal(500);
-            await man.addToClientBalance(transactionContext, 'tx1', 700, 'user1');
+            await man.addToClientBalance(transactionContext, 'tx1', 'user1', 700);
             value = await man.queryClientBalance(transactionContext, 'tx1', 'user1');
             expect(value).to.be.equal(700);
             value = await man.hasReservation(transactionContext, 'tx1', 'user1');
@@ -112,7 +112,7 @@ describe('Flights Manager Basic Tests', () => {
             value = await man.queryNextAvailableSeat(transactionContext, 'tx1', 'user1');
             expect(value).to.be.equal(0);
 
-            await man.bookSeat(transactionContext, 'tx1', value, 'user1');
+            await man.bookSeat(transactionContext, 'tx1', 'user1', value);
 
             value = await man.hasReservation(transactionContext, 'tx1', 'user1');
             expect(value).to.be.true;
@@ -120,18 +120,18 @@ describe('Flights Manager Basic Tests', () => {
             expect(value).to.be.equal(200);
             value = await man.isASeatAvailable(transactionContext, 'tx1', 'user1');
             expect(value).to.be.true;
-            value = await man.isSeatBookedByClient(transactionContext, 'tx1', 0, 'user1');
+            value = await man.isSeatBookedByClient(transactionContext, 'tx1', 'user1', 0);
             expect(value).to.be.true;
-            value = await man.isSeatAvailable(transactionContext, 'tx1', 0, 'user1');
+            value = await man.isSeatAvailable(transactionContext, 'tx1', 'user1', 0);
             expect(value).to.be.false;
 
             await man.endFlight(transactionContext, 'tx1', 'user1');
 
             value = await man.isASeatAvailable(transactionContext, 'tx1', 'user1');
             expect(value).to.be.true;
-            value = await man.isSeatAvailable(transactionContext, 'tx1', 0, 'user1');
+            value = await man.isSeatAvailable(transactionContext, 'tx1', 'user1', 0);
             expect(value).to.be.true;
-            value = await man.isSeatBookedByClient(transactionContext, 'tx1', 0, 'user1');
+            value = await man.isSeatBookedByClient(transactionContext, 'tx1', 'user1', 0);
             expect(value).to.be.false;
             value = await man.queryNextAvailableSeat(transactionContext, 'tx1', 'user1');
             expect(value).to.be.equal(0);
