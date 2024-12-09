@@ -104,6 +104,8 @@ describe('Flights Manager Basic Tests', () => {
             let man = new FlightBookingManager();
             let value = await man.querySeatPrice(transactionContext, 'tx1', 'user1');
             expect(value).to.be.equal(500);
+            value = await man.querySeatsCount(transactionContext, 'tx1', 'user1');
+            expect(value).to.be.equal(10);
             await man.addToClientBalance(transactionContext, 'tx1', 'user1', 700);
             value = await man.queryClientBalance(transactionContext, 'tx1', 'user1');
             expect(value).to.be.equal(700);
